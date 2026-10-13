@@ -9,10 +9,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # 1. Descargar el código del repositorio
     - uses: actions/checkout@v3
 
-    # 2. Login al Container Registry de Azure
     - name: Login to ACR
       uses: docker/login-action@v3
       with:
@@ -20,40 +18,17 @@ jobs:
         username: ${{ secrets.ACR_USERNAME }}
         password: ${{ secrets.ACR_PASSWORD }}
 
-    # 3. Construir la imagen Docker y subirla al ACR
     - name: Build and push image
       uses: docker/build-push-action@v5
       with:
         push: true
         tags: acrmlopscorazon.azurecr.io/ml-api:latest
 
-    # 4. Login a Azure con el Service Principal
     - name: Login to Azure
       uses: azure/login@v1
       with:
         creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-    # 5. Desplegar en Container Apps
     - name: Deploy to Container Apps
       run: |
-        az containerapp create \
-          --name api-mi-proyecto \
-          --resource-group rg-mlops-corazon \
-          --environment env-corazon-ean \
-          --image acrmlopscorazon.azurecr.io/ml-api:latest \
-          --registry-server acrmlopscorazon.azurecr.io \
-          --registry-username ${{ secrets.ACR_USERNAME }} \
-          --registry-password ${{ secrets.ACR_PASSWORD }} \
-          --target-port 8000 \
-          --ingress external \
-          --min-replicas 1 \
-          --env-vars \
-            DATABRICKS_URL=${{ secrets.DATABRICKS_URL }} \
-            DATABRICKS_TOKEN=${{ secrets.DATABRICKS_TOKEN }} || \
-        az containerapp update \
-          --name api-mi-proyecto \
-          --resource-group rg-mlops-corazon \
-          --image acrmlopscorazon.azurecr.io/ml-api:latest \
-          --set-env-vars \
-            DATABRICKS_URL=${{ secrets.DATABRICKS_URL }} \
-            DATABRICKS_TOKEN=${{ secrets.DATABRICKS_TOKEN }}           
+        az containerapp up --name api-mi-proyecto --resource-group rg-mlops-corazon --environment env-corazon-ean --image acrmlopscorazon.azurecr.io/ml-api:latest --ingress external --target-port 8000
